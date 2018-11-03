@@ -7,6 +7,7 @@ sudo insmod ./hook.ko
 
 sudo dmesg -C
 
-ls
+ls -la
 
 dmesg
+
