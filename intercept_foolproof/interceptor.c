@@ -33,18 +33,6 @@ asmlinkage int custom_call(unsigned long* state){
 	return 0;
 }
 
-/*asmlinkage long (*ref_sys_read)(unsigned int fd, char __user *buf, size_t count);
-asmlinkage long new_sys_read(unsigned int fd, char __user *buf, size_t count)
-{
-	long ret;
-	ret = ref_sys_read(fd, buf, count);
-
-	if(count == 1 && fd == 0)
-		printk(KERN_INFO "intercept: 0x%02X", buf[0]);
-
-	return ret;
-}*/
-
 int __init init_module(void) 
 {
 	p_sys_call_table = (void *) kallsyms_lookup_name("sys_call_table");
@@ -56,10 +44,8 @@ int __init init_module(void)
 	write_cr0(original_cr0 & ~0x00010000);
 	
 	original_syscall = (void *)p_sys_call_table[SYS_CALL_ENTRY];
-	//syscall(333);
 	
 	printk(KERN_ALERT "our system call loaded starting from address: %p\n", *((unsigned long*) original_syscall));
-	//ref_sys_read = (void *)p_sys_call_table[__NR_read];
 	p_sys_call_table[SYS_CALL_ENTRY] = (void *)custom_call;
 	write_cr0(original_cr0);
 	
