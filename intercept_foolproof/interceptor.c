@@ -12,7 +12,7 @@
 #include <linux/fs.h>
 
 #define SYS_CALL_ENTRY 333
-#define MAX_ENTRIES 548 //0 - 334
+#define MAX_ENTRIES __NR_syscall_max //0 - 334
 
 //   /home/kernel/linux-hwe-4.15.0/arch/x86/entry/syscalls - Can see what entries are blank. 
 
@@ -25,22 +25,11 @@ unsigned long syscall_address[MAX_ENTRIES];
 
 asmlinkage int (*original_syscall)(void);
 
-asmlinkage int custom_call(void){
-	printk(KERN_ALERT "In custom call: System call start address: %p\n", p_sys_call_table[0]);
-	printk(KERN_ALERT "Max: %d", __NR_syscall_max);	
-	int i;
-
-	for(i = 0; i < MAX_ENTRIES; i++) {
-		if(syscall_address[i] == (unsigned long) p_sys_call_table[i]) {
-			printk(KERN_ALERT "Same --> Original: %p, modified: %p, syscall number: %d\n", (unsigned long) syscall_address[i], (unsigned long) p_sys_call_table[i], i); 
-		}
-		else {
-			printk(KERN_ALERT "Modified spaces --> Original: %p, modified: %p, syscall number: %d\n", (void *) syscall_address[i], (void *)p_sys_call_table[i], i); 
-
-		}
-	}
-	
-
+asmlinkage int custom_call(unsigned long* state){
+	//printk(KERN_ALERT "In custom call: system call start address: %p\n", *(p_sys_call_table[0]));
+	//printk(KERN_ALERT "In custom call: system call first entry: %p\n", (unsigned long)(*(unsigned long*)(*(p_sys_call_table))));
+	//unsigned long* src_add = p_sys_call_table;
+	copy_to_user(state, p_sys_call_table, __NR_syscall_max * sizeof(unsigned long));
 	return 0;
 }
 
@@ -59,7 +48,8 @@ asmlinkage long new_sys_read(unsigned int fd, char __user *buf, size_t count)
 int __init init_module(void) 
 {
 	p_sys_call_table = (void *) kallsyms_lookup_name("sys_call_table");
-	printk(KERN_ALERT "system call start address: %p\n", p_sys_call_table);
+	printk(KERN_ALERT "p_sys_call_address: %p\n", p_sys_call_table);
+	printk(KERN_ALERT "system call table stored from address: %p\n", p_sys_call_table);
 
 	original_cr0 = read_cr0();
 	
@@ -68,7 +58,7 @@ int __init init_module(void)
 	original_syscall = (void *)p_sys_call_table[SYS_CALL_ENTRY];
 	//syscall(333);
 	
-	printk(KERN_ALERT "our system call loaded : %p\n", original_syscall);
+	printk(KERN_ALERT "our system call loaded starting from address: %p\n", *((unsigned long*) original_syscall));
 	//ref_sys_read = (void *)p_sys_call_table[__NR_read];
 	p_sys_call_table[SYS_CALL_ENTRY] = (void *)custom_call;
 	write_cr0(original_cr0);
