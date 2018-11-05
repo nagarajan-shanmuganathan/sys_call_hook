@@ -32,14 +32,12 @@ int main(){
 		fclose(fp);
 
 		for(i = 0; i < __NR_syscall_max; i++) {
-			if(i == 333 || i == 78) {
-				if(old_state[i] == state[i]) {
-					printf("Same --> Original: %p, modified: %p, syscall number: %d\n", (void *)old_state[i],(void*) state[i], i); 
-				}
-				else {
-					printf("Modified spaces --> Original: %p, modified: %p, syscall number: %d\n",(void*) old_state[i],(void*) state[i], i); 
+			if(old_state[i] == state[i]) {
+				printf("Same --> Original: %p, modified: %p, syscall number: %d\n", (void *)old_state[i],(void*) state[i], i); 				
+			}
+			else {
+				printf("Modified spaces --> Original: %p, modified: %p, syscall number: %d\n",(void*) old_state[i],(void*) state[i], i); 
 
-				}
 			}
 		}
 		fp = fopen(STATE_FILE_NAME, "wb");
@@ -50,9 +48,7 @@ int main(){
     		// file doesn't exist
 		printf("Obtained a system call table\n");
 		for(i = 0; i < __NR_syscall_max; i++) {
-			if(i == 333 || i == 78){
-				printf("Value at %d: %p\n", i, (void *) state[i]);
-			}
+			printf("Value at %d: %p\n", i, (void *) state[i]);
 		}
 
 		fp = fopen(STATE_FILE_NAME, "wb");

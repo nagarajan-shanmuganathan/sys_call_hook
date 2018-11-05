@@ -28,10 +28,10 @@ asmlinkage int custom_call(unsigned long* state){
 	//printk(KERN_ALERT "In custom call: system call start address: %p\n", *(p_sys_call_table[0]));
 	//printk(KERN_ALERT "In custom call: system call first entry: %p\n", (unsigned long)(*(unsigned long*)(*(p_sys_call_table))));
 	//unsigned long* src_add = p_sys_call_table;
-	printk(KERN_ALERT "Sending: %p\n", p_sys_call_table[0]);
+	/*printk(KERN_ALERT "Sending: %p\n", p_sys_call_table[0]);
 	printk(KERN_ALERT "Sending: %p\n", p_sys_call_table[78]);
 	printk(KERN_ALERT "Sending: %p\n", p_sys_call_table[333]);
-	printk(KERN_ALERT "In custom call: system call first entry: %p\n", (unsigned long)(*(unsigned long*)(*(p_sys_call_table))));
+	printk(KERN_ALERT "In custom call: system call first entry: %p\n", (unsigned long)(*(unsigned long*)(*(p_sys_call_table))))*/;
 	copy_to_user(state, p_sys_call_table, __NR_syscall_max * sizeof(unsigned long));
 	return 0;
 }
