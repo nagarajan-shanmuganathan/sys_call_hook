@@ -9,7 +9,7 @@
 #include<linux/pid.h>
 #include<linux/pid_namespace.h>
 #include<linux/slab.h>
-
+#include<linux/time.h>
 
 MODULE_LICENSE("GPL");
 MODULE_AUTHOR("Abhishek Lolage");
@@ -60,7 +60,7 @@ static procinfo get_process_info(struct task_struct* tstruct){
 	}
 	pinfo.pid = tstruct->pid;
 	pinfo.ppid = (tstruct->parent)->pid;
-	pinfo.start_time = tstruct->start_time;
+	pinfo.start_time = (tstruct->start_time);
 	pinfo.num_sib = num_sib;
 	return pinfo;
 }

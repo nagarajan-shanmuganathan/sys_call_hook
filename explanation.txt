@@ -1,3 +1,6 @@
+Team members: Abhishek Lolage, Nagarajan Shanmuganathan
+
+
 Explanation for 2(a)
 strace of ls was observed, and getdents is the function which captures the files and folders in current directory.
 After modifying getdents() which is used by "ls", the following commands are affected.

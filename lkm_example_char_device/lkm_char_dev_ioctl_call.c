@@ -8,7 +8,7 @@
 #include <time.h>
 
 #define GET_CURRENT_TIME clock()
-#define USER_APP_PID 1651 
+#define USER_APP_PID 8665 
 
 typedef struct procinfo{
 	pid_t pid;
@@ -22,7 +22,8 @@ void printProcInfo(procinfo* p){
 	printf("PID: %d\n", p->pid);
 	printf("Parent's PID: %d\n", p->ppid);
 	printf("# of siblings: %d\n", p->num_sib);
-	printf("Start time: %ld\n", p->start_time);
+	//printf("Start time: %ld\n", (long)((p->start_time).tv_sec));
+	printf("Start time in secs: %lf\n", (double)(p->start_time)/(double)10000000000);
 }
 void application_ioctl_call(int fd, int pid, procinfo* procinfo){
 

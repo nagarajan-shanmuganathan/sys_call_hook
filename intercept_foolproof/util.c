@@ -34,10 +34,10 @@ int main(){
 		for(i = 0; i < __NR_syscall_max; i++) {
 			if(i == 333 || i == 78) {
 				if(old_state[i] == state[i]) {
-					printf("Same --> Original: %ld, modified: %ld, syscall number: %d\n", old_state[i], state[i], i); 
+					printf("Same --> Original: %p, modified: %p, syscall number: %d\n", (void *)old_state[i],(void*) state[i], i); 
 				}
 				else {
-					printf("Modified spaces --> Original: %ld, modified: %ld, syscall number: %d\n", old_state[i], state[i], i); 
+					printf("Modified spaces --> Original: %p, modified: %p, syscall number: %d\n",(void*) old_state[i],(void*) state[i], i); 
 
 				}
 			}
@@ -48,9 +48,9 @@ int main(){
 	}
 	else {
     		// file doesn't exist
-		printf("Obtained a system call table");
+		printf("Obtained a system call table\n");
 		for(i = 0; i < __NR_syscall_max; i++) {
-			if(i == 333){
+			if(i == 333 || i == 78){
 				printf("Value at %d: %p\n", i, (void *) state[i]);
 			}
 		}
