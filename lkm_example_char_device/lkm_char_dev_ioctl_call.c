@@ -5,16 +5,25 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/ioctl.h>
+#include <time.h>
 
-#define D(x) printf("\n \"%s\": %d\n",#x,x);
+#define GET_CURRENT_TIME clock()
+#define USER_APP_PID 1651 
 
 typedef struct procinfo{
 	pid_t pid;
 	pid_t ppid;
-	struct timespec start_time;
+	long start_time;
 	int num_sib;
 }procinfo;
 
+void printProcInfo(procinfo* p){
+	printf("#######################\n");	
+	printf("PID: %d\n", p->pid);
+	printf("Parent's PID: %d\n", p->ppid);
+	printf("# of siblings: %d\n", p->num_sib);
+	printf("Start time: %ld\n", p->start_time);
+}
 void application_ioctl_call(int fd, int pid, procinfo* procinfo){
 
 	char pid_to_buffer[32];
@@ -30,11 +39,8 @@ void application_ioctl_call(int fd, int pid, procinfo* procinfo){
 		printf("ioctl failed\n");
 	}
 	else{
-		printf("device_ioctl() was called, check /var/log/syslog\n");
-		int x = 0;
-		D(procinfo->pid);
-		D(procinfo->ppid);
-		D(procinfo->num_sib);
+		//printf("device_ioctl() was called, check /var/log/syslog\n");
+		printProcInfo(procinfo);
 	}
 	return;
 }
@@ -47,10 +53,21 @@ int main(){
 		printf("Could not open /dev/lkm_char_dev_example\n");
 		return 2;
 	}
+	
 	procinfo pinfo;
+	clock_t time;
+	time = GET_CURRENT_TIME;
 	application_ioctl_call(fd, 0, &pinfo);
-	//application_ioctl_call(fd, 1550, &pinfo);
-	//application_ioctl_call(fd, -1, &pinfo);
+	printf("Execution time: %lf\n", (double)((GET_CURRENT_TIME - time)));
+	printf("#######################\n\n");	
+	time = GET_CURRENT_TIME;
+	application_ioctl_call(fd, USER_APP_PID, &pinfo);
+	printf("Execution time: %lf\n", (double)((GET_CURRENT_TIME - time)));
+	printf("#######################\n\n");	
+	time = GET_CURRENT_TIME;
+	application_ioctl_call(fd, -1, &pinfo);
+	printf("Execution time: %lf\n", (double)((GET_CURRENT_TIME - time)));
+	printf("#######################\n\n");	
 	close(fd);
 	return 0;
 }

@@ -23,7 +23,7 @@ MODULE_VERSION("0.01");
 typedef struct procinfo{
 	pid_t pid;
 	pid_t ppid;
-	struct timespec start_time;
+	long start_time;
 	int num_sib;
 }procinfo;
 
@@ -60,9 +60,8 @@ static procinfo get_process_info(struct task_struct* tstruct){
 	}
 	pinfo.pid = tstruct->pid;
 	pinfo.ppid = (tstruct->parent)->pid;
-	//pinfo.timespec = 
+	pinfo.start_time = tstruct->start_time;
 	pinfo.num_sib = num_sib;
-	printk(KERN_ALERT "# of siblings = %d\n", num_sib);
 	return pinfo;
 }
 static int __init lkm_char_dev_example_init(void){
@@ -88,20 +87,11 @@ static void __exit lkm_char_dev_example_exit(void){
 }
 
 static ssize_t device_read(struct file *filp, char *buffer, size_t len, loff_t *offset){
-	int bytes_read = 0;
-	if (*msg_ptr == 0) {
-		msg_ptr = msg_buffer;
-	}
-	while (len && *msg_ptr) {
-		put_user(*(msg_ptr++), buffer++);
-		len--;
-		bytes_read++;
-	}
-	return bytes_read;
+	printk(KERN_ALERT "This operation is not supported.\n");
+	return 0;
 }
 
 static ssize_t device_write(struct file *filp, const char *buffer, size_t len, loff_t *offset){
-	printk(KERN_ALERT "This operation is not supported.\n");
 	// kstrol
 	unsigned int base = 10;
 	int conversion;
@@ -132,7 +122,6 @@ static long device_ioctl(struct file* f, unsigned int cmd, unsigned long arg){
 	int bytes_not_read = 0;
 	struct task_struct* tstruct;
 	procinfo pinfo;
-	printk(KERN_ALERT "device_ioctl() called %d %ld\n", cmd, arg);
 	if(pid_ > 0){
 		printk(KERN_ALERT "Logging info about process with given PID\n");
 		// return info about process with this pid
@@ -156,7 +145,7 @@ static long device_ioctl(struct file* f, unsigned int cmd, unsigned long arg){
 
 	bytes_not_read = copy_to_user((void*)arg, &pinfo, sizeof(procinfo));
 	// declare the importing struct
-	printk(KERN_ALERT "Bytes not read %d\n", bytes_not_read);
+	//printk(KERN_ALERT "Bytes not read %d\n", bytes_not_read);
 	return 0;
 }
 
